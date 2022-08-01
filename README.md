@@ -5,3 +5,9 @@ and then executes shellcheck against that.
 Input parameters are either/or directories or files. If a dir is given,
 it will recursively go to all subdirectories as well.
 Multiple files/dirs can be given
+
+REQUIREMENTS:
+shellcheck must be install on the client
+
+EXAMPLE USAGE:
+python3 lint_shell projects/uc_workspace/jenkins
