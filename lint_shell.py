@@ -14,7 +14,8 @@ import subprocess
 import sys
 
 TMPFILE = "/tmp/lintme.sh"
-
+IGNORE = "SC2154,SC1091,SC1090"
+LINTER = ["shellcheck", '-s', 'bash', '-e', IGNORE,  TMPFILE]
 
 def lint_sh_content(f_data, filename):
     start_sh = 0
@@ -50,26 +51,30 @@ def lint_sh_content(f_data, filename):
                 # ${...} is for groovy var substitution, but the shell checker
                 # doesn't see them, so I remove the subsitituion chars and
                 # make it look like it was already substitued
-                content = content.replace("${{{}}}".format(var), var)
+                content = content.replace("${{{}}}".format(var),
+                                          "${}".format(var))
             # the escape was so that the actual char would get into the shell.
             content = content.replace("\\", "")
             with open(TMPFILE, "w") as w:
                 w.write(content)
-            res = subprocess.run(["shellcheck", '-s', 'bash', TMPFILE],
-                                 stdout=subprocess.PIPE)
+            res = subprocess.run(LINTER, stdout=subprocess.PIPE)
             # capture stdout in order to replace the tmp file name and line
-            # number with the actual filename and line number. Note, in the
-            # event of multiple linting catches in the same sh function, the
-            # line numbers of all but the first won't be accurate.
+            # number with the actual filename and line number.
             if res.stdout:
-                data = res.stdout
-                if b"In %b" % TMPFILE.encode() in data:
-                    colon = data.find(b":")
-                    line = str(f_data.count("\n", 0, start_sh) + 1)
-                    data = b"In %b line %b%b" % (
-                            filename.encode(), line.encode(), data[colon:])
-                    data = data.replace(TMPFILE.encode(), filename.encode())
-                print(data.decode())
+                if b"In %b" % TMPFILE.encode() in res.stdout:
+                    line = f_data.count("\n", 0, start_sh)
+                    final_msg = b""
+                    brk = b"\nIn %b line " % TMPFILE.encode()
+                    hdr = b"\nIn %b line " % filename.encode()
+                    lst_probs = res.stdout.split(brk)
+                    for l in lst_probs:
+                        num_match = re.match(b"\d+", l)
+                        if num_match:
+                            fake_num = num_match.group(0)
+                            real_num = str(int(fake_num) + line).encode()
+                            final_msg += b"%b%b" % (hdr, l.replace(fake_num,
+                                                    real_num, 1))
+                print(final_msg.decode())
 
 
 def lintfile(current_file):
