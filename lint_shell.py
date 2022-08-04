@@ -14,7 +14,7 @@ import subprocess
 import sys
 
 TMPFILE = "/tmp/lintme.sh"
-IGNORE = "SC2154,SC1091,SC1090"
+IGNORE = "SC2154,SC1091,SC1090,SC2086,SC2164"
 LINTER = ["shellcheck", '-s', 'bash', '-e', IGNORE,  TMPFILE]
 
 def lint_sh_content(f_data, filename):
