@@ -14,10 +14,11 @@ import subprocess
 import sys
 
 TMPFILE = "/tmp/lintme.sh"
-IGNORE = "SC2154,SC1091,SC1090,SC2086,SC2164"
+IGNORE = "SC2154,SC1091,SC1090,SC2086,SC2164,SC2016"
 LINTER = ["shellcheck", '-s', 'bash', '-e', IGNORE,  TMPFILE]
 
 def lint_sh_content(f_data, filename):
+    global cnt
     start_sh = 0
     # the below pattern will look for the whole word sh, but not if it has a
     # dot before it (for example a filename
@@ -68,6 +69,7 @@ def lint_sh_content(f_data, filename):
                     hdr = b"\nIn %b line " % filename.encode()
                     lst_probs = res.stdout.split(brk)
                     for l in lst_probs:
+                        cnt += 1
                         num_match = re.match(b"\d+", l)
                         if num_match:
                             fake_num = num_match.group(0)
@@ -75,7 +77,6 @@ def lint_sh_content(f_data, filename):
                             final_msg += b"%b%b" % (hdr, l.replace(fake_num,
                                                     real_num, 1))
                 print(final_msg.decode())
-
 
 def lintfile(current_file):
     with open(current_file) as f:
@@ -93,6 +94,7 @@ def lintdir(thedir):
 
 if __name__ == "__main__":
     if len(sys.argv) > 1:
+        cnt = 0
         for i in range(len(sys.argv)-1):
             item = sys.argv[i+1]
             if os.path.isdir(item):
@@ -101,5 +103,7 @@ if __name__ == "__main__":
                 lintfile(item)
             else:
                 raise Exception("{} is not a file or diir".format(item))
+        print ("{} linting issues found".format(cnt))
+            
     else:
         raise Exception("Usage: lint_shell.py [DIR | FILE] ...")
